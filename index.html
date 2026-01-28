@@ -211,10 +211,16 @@
           const [products, setProducts] = useState([]); 
           const [currentUser, setCurrentUser] = useState(null);
           const [loading, setLoading] = useState(true);
-          const [view, setView] = useState('home'); 
+          // Initialize view from localStorage if available, else default to 'home'
+          const [view, setView] = useState(() => localStorage.getItem('farm2home_view') || 'home');
           const [authMode, setAuthMode] = useState('login'); 
           const [isMenuOpen, setIsMenuOpen] = useState(false);
           const [notification, setNotification] = useState(null);
+
+          // --- VIEW PERSISTENCE ---
+          useEffect(() => {
+              localStorage.setItem('farm2home_view', view);
+          }, [view]);
 
           // --- AUTH ---
           useEffect(() => {
@@ -228,17 +234,13 @@
                       data.role = 'mod';
                   }
                   setCurrentUser({ uid: user.uid, ...data });
-                  if (view === 'auth') {
-                      if (data.role === 'farmer') setView('farmer-panel');
-                      else if (data.role === 'mod') setView('mod-panel');
-                      else if (data.role === 'buyer') setView('marketplace');
-                      else setView('home');
-                  }
+                  // We do NOT reset view here, allowing localStorage to persist the user's location
                 } else {
                     setCurrentUser({ uid: user.uid, role: 'unknown', name: user.email });
                 }
               } else {
                 setCurrentUser(null);
+                setView('home'); // Redirect to home on logout
               }
               setLoading(false);
             });
@@ -339,6 +341,7 @@
 
           const handleLogout = async () => {
             await signOut(auth);
+            localStorage.removeItem('farm2home_view'); // Clear view preference on logout
             setView('home');
           };
 
@@ -443,11 +446,10 @@
                         </button>
                       )}
                       
-                      {currentUser.role === 'buyer' && (
-                          <button onClick={() => setView('my-orders')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 ${view === 'my-orders' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
-                              <Package className="w-4 h-4"/> My Orders
-                          </button>
-                      )}
+                      {/* Purchase Panel for EVERYONE */}
+                      <button onClick={() => setView('my-orders')} className={`px-4 py-2 rounded-xl font-bold text-sm transition-colors flex items-center gap-2 ${view === 'my-orders' ? 'bg-emerald-100 text-emerald-800' : 'bg-stone-100 text-stone-600 hover:bg-stone-200'}`}>
+                          <Package className="w-4 h-4"/> My Purchases
+                      </button>
 
                       {/* Divider */}
                       <div className="h-8 w-px bg-stone-200"></div>
@@ -578,6 +580,7 @@
              );
           };
 
+          // --- BUYER ORDERS PANEL (Renamed to My Purchases) ---
           const BuyerOrders = () => {
             const [orders, setOrders] = useState([]);
             
@@ -594,7 +597,7 @@
             return (
                 <div className="min-h-screen pt-28 pb-12 px-4 bg-stone-50">
                     <div className="max-w-4xl mx-auto">
-                        <h1 className="text-4xl font-black text-stone-900 mb-8">My Orders</h1>
+                        <h1 className="text-4xl font-black text-stone-900 mb-8">My Purchases</h1>
                         <div className="space-y-6">
                             {orders.length === 0 && (
                                 <div className="text-center py-20 bg-white rounded-[2rem] border border-dashed border-stone-200">
